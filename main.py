@@ -2,20 +2,22 @@ from img2vec_pytorch import Img2Vec
 from PIL import Image
 from redis import Redis
 import numpy as np
+from redis.commands.json.path import Path
 from redis.commands.search.field import VectorField, TagField, NumericField
 from redis.commands.search.query import Query
+from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 import os
 import time
 
 host = "localhost"
 port = 6379
-
+prod_prefix = 'product:'
 
 def create_index_in_redis(dim, vector_field_name):
     redis = Redis(host=host, port=port)
     redis.flushall()
-    schema = (VectorField(vector_field_name, "FLAT", {"TYPE": "FLOAT32", "DIM": dim, "DISTANCE_METRIC": "COSINE"}))
-    redis.ft().create_index(schema)
+    schema = (VectorField(f'$.{vector_field_name}[*]', "FLAT", {"TYPE": "FLOAT32", "DIM": dim, "DISTANCE_METRIC": "COSINE"}, as_name=vector_field_name))
+    redis.ft().create_index(schema, definition=IndexDefinition(prefix=[prod_prefix], index_type=IndexType.JSON))
     redis.ft().config_set("default_dialect", 2)
 
 
@@ -26,27 +28,29 @@ def load_data(client, img2vec, vector_field_name):
     last_id = 5478851
     for i in range(first_id, last_id+1):
         # Read in an image (rgb format)
-        for j in range(4):
-            fname = f'data/{i}-{j}.jpg'
-            if not os.path.isfile(fname):
-                continue
+        images = [f'data/{i}-{j}.jpg' for j in range(4) if os.path.isfile(f'data/{i}-{j}.jpg')]
+        if len(images) > 0:
             try:
-                img = Image.open(fname)
+                imgs = [Image.open(img) for img in images]
                 start = time.time()
-                vec = img2vec.get_vec(img)
+                vectors = img2vec.get_vec(imgs)
                 total_time += time.time() - start
-                client.hset(f"{i}-{j}", mapping={vector_field_name: vec.tobytes()})
+                client.json().set(f"{prod_prefix}{i}", Path.root_path(), {vector_field_name: [vec.tolist() for vec in vectors]})
                 count += 1
             except RuntimeError as e:
-                print(f"Runtime error {e} for {fname}")
+                print(f"Runtime error {e} for {i}")
+            finally:
+                [img.close() for img in imgs]
 
-    print("Index size: ", client.ft().info()['num_docs'])
+    info = client.ft().info()
+    print("Index size: ", info['num_docs'])
+    print("Number of Records: ", info['num_records'])
     print(f"Avg inference time is: {total_time/count}")
 
 
 def main():
     dim = 512
-    vector_field_name = "vector"
+    vector_field_name = "vectors"
     client = Redis(host=host, port=port)
     create_index_in_redis(dim, vector_field_name)
 
@@ -56,7 +60,7 @@ def main():
     # Load images data, convert it to vector embeddings and store it in Redis.
     load_data(client, img2vec, vector_field_name)
 
-    # Run KNN for sime image
+    # Run KNN for some image
     fname = f'data/5166398-0.jpg'
     img = Image.open(fname)
     query_vector = img2vec.get_vec(img)
