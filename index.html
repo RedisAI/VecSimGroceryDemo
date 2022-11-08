@@ -185,6 +185,7 @@
                     body
                 });
 
+                products.replaceChildren();
                 for (const product of (await response.json()).products) {
                     appendProductDiv(product);
                 }
