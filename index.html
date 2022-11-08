@@ -15,6 +15,7 @@
                 padding: 0;
                 width: 100%;
                 height: 100%;
+                font-family: Arial, Helvetica, sans-serif;
             }
 
             section.camera-container, section.camera-container > video {
@@ -24,9 +25,31 @@
 
             section.camera-container > div.products {
                 position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
+                top: 1em;
+                left: 1em;
+                right: 1em;
+                display: flex;
+                flex-direction: column;
+                gap: 1em;
+            }
+
+            section.camera-container > div.products > div.product {
+                display: flex;
+                align-items: center;
+                background: #212122;
+                border-radius: 1em;
+                padding: 0.5em;
+            }
+
+            section.camera-container > div.products > div.product > img {
+                width: 3em;
+                height: 3em;
+                padding: 0.25em;
+                object-fit: contain;
+            }
+
+            section.camera-container > div.products > div.product > div.name {
+                flex: 1 1 auto;
             }
 
             section.camera-container > div.buttons {
@@ -99,28 +122,6 @@
 
             section.camera-container.on > div.buttons > button.pause {
                 opacity: 1;
-            }
-    
-            div.products {
-                display: flex;
-                flex-direction: column;
-                gap: 1em;
-            }
-
-            div.product {
-                display: flex;
-                align-items: center;
-            }
-
-            div.product > img {
-                width: 3em;
-                height: 3em;
-                padding: 0.25em;
-                object-fit: contain;
-            }
-
-            div.product > div.name {
-                flex: 1 1 auto;
             }
         </style>
     </head>
@@ -206,7 +207,7 @@
                 div.classList.add('product');
 
                 const img = document.createElement('img');
-                img.setAttribute('src', product.images[0]);
+                img.setAttribute('src', product.images?.[0]);
                 div.appendChild(img);
 
                 const name = document.createElement('div');
@@ -216,7 +217,7 @@
 
                 const add = document.createElement('button');
                 add.setAttribute('type', 'button');
-                add.appendChild(document.createTextNode('Add'));                
+                add.appendChild(document.createTextNode('+'));                
                 add.addEventListener('click', () => addToCart(product));
                 div.appendChild(add);
 
