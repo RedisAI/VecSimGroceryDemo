@@ -14,7 +14,6 @@ import time
 app = Flask(__name__)
 redis = Redis()
 img2vec = Img2Vec()
-vector_field_name = "vectors"
 
 # define the computation device
 g_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -25,7 +24,6 @@ threshold = 0.15
 transform = transforms.Compose([
     transforms.ToTensor(),
 ])
-
 
 # Get the model
 def get_detection_model(device):
@@ -80,7 +78,7 @@ def search():
     return [{"box": box.tolist(), "products": search_product(image, box)} for box in boxes]
 
 def getTopK(query_vector, k = 10, filter = '*'):
-    q = Query(f'({filter})=>[KNN {k} @{vector_field_name} $vec_param AS distance]').sort_by('distance').paging(0, k)\
+    q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
         .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0]', 'image')
     start = time.time()
     res = redis.ft().search(q, query_params={'vec_param': query_vector.tobytes()})
