@@ -140,7 +140,7 @@
         <section class="camera-container">
             <div class="boxes"></div>
 
-            <video></video>
+            <video playsinline></video>
 
             <div class="products"></div>
 
@@ -170,7 +170,9 @@
                 boxes.replaceChildren();
                 try {
                     video.srcObject = await navigator.mediaDevices.getUserMedia({
-                        video: true,
+                        video: {
+                            facingMode: 'environment'
+                        },
                         audio: false
                     });
                     video.play();
