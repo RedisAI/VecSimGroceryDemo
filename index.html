@@ -140,7 +140,7 @@
         <section class="camera-container">
             <div class="boxes"></div>
 
-            <video playsinline></video>
+            <video playsinline autoplay></video>
 
             <div class="products"></div>
 
@@ -175,7 +175,6 @@
                         },
                         audio: false
                     });
-                    video.play();
                 } catch (err) {
                     alert(`Start camera error ${err.message}`);
                     console.error(err);

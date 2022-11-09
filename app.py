@@ -13,6 +13,8 @@ from redis.commands.search.query import Query
 import time
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 redis = Redis()
 img2vec = Img2Vec()
 
