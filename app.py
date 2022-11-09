@@ -59,7 +59,7 @@ def search_product(image, box_points):
     query_vector = img2vec.get_vec(product)
 
     res, search_time = getTopK(query_vector, 4)
-    print('KNN search time', search_time)
+    print('KNN search time\t', search_time)
     return res
 
 @app.route('/')
@@ -76,9 +76,16 @@ def search():
 
     start = time.time()
     boxes = get_boxes(image, g_model, g_device)
-    print('boxing time', time.time() - start)
+    print('boxing time\t', time.time() - start)
 
-    return [{"box": box.tolist(), "products": search_product(image, box)} for box in boxes]
+    return {
+        'results': [
+            {
+                'box': box.tolist(),
+                'products': search_product(image, box)
+            } for box in boxes
+        ]
+    }
 
 def getTopK(query_vector, k = 10, filter = '*'):
     q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
