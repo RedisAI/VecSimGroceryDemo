@@ -1,0 +1,4 @@
+flask
+img2vec_pytorch
+redis
+numpy
