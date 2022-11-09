@@ -5,7 +5,8 @@ from PIL import Image
 from redis import Redis
 import numpy as np
 import torch
-from torchvision.models.detection import retinanet_resnet50_fpn_v2, RetinaNet_ResNet50_FPN_V2_Weights
+from torchvision.models.detection import retinanet_resnet50_fpn_v2 as model_func, RetinaNet_ResNet50_FPN_V2_Weights as model_weights
+# from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2 as model_func, FasterRCNN_ResNet50_FPN_V2_Weights as model_weights
 import torchvision.transforms as transforms
 
 from redis.commands.search.query import Query
@@ -18,7 +19,7 @@ img2vec = Img2Vec()
 # define the computation device
 g_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-threshold = 0.15
+threshold = 0.5
 
 # define the torchvision image transforms
 transform = transforms.Compose([
@@ -28,15 +29,15 @@ transform = transforms.Compose([
 # Get the model
 def get_detection_model(device):
     # load the model
-    weights = RetinaNet_ResNet50_FPN_V2_Weights.COCO_V1
-    model = retinanet_resnet50_fpn_v2(weights=weights)
+    weights = model_weights.COCO_V1
+    model = model_func(weights=weights, box_score_thresh=threshold, score_thresh=threshold)
     # load the model onto the computation device
     model = model.eval().to(device)
     return model
 
 g_model = get_detection_model(g_device)
 
-def get_boxes(image, model, device, detection_threshold):
+def get_boxes(image, model, device):
     # transform the image to tensor
     image = transform(image).to(device)
     # add a batch dimension
@@ -49,7 +50,7 @@ def get_boxes(image, model, device, detection_threshold):
     # get all the predicted bounding boxes
     pred_bboxes = outputs[0]['boxes'].detach().cpu().numpy()
     # get boxes above the threshold score
-    boxes = pred_bboxes[pred_scores >= detection_threshold].astype(np.int32)
+    boxes = pred_bboxes.astype(np.int32)
     return boxes
 
 #box_points = [xmin,ymin, xmax,ymax]
@@ -57,8 +58,8 @@ def search_product(image, box_points):
     product = image.crop(box_points)
     query_vector = img2vec.get_vec(product)
 
-    res, _ = getTopK(query_vector, 4)
-
+    res, search_time = getTopK(query_vector, 4)
+    print('KNN search time', search_time)
     return res
 
 @app.route('/')
@@ -73,7 +74,9 @@ def search():
     file = request.files['image']
     image = Image.open(file)
 
-    boxes = get_boxes(image, g_model, g_device, threshold)
+    start = time.time()
+    boxes = get_boxes(image, g_model, g_device)
+    print('boxing time', time.time() - start)
 
     return [{"box": box.tolist(), "products": search_product(image, box)} for box in boxes]
 
