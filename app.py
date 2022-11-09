@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torchvision.models.detection import retinanet_resnet50_fpn_v2 as model_func, RetinaNet_ResNet50_FPN_V2_Weights as model_weights
 # from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2 as model_func, FasterRCNN_ResNet50_FPN_V2_Weights as model_weights
-import torchvision.transforms as transforms
+from torchvision import transforms
 
 from redis.commands.search.query import Query
 import time
@@ -45,13 +45,8 @@ def get_boxes(image, model, device):
     # get the predictions on the image
     with torch.no_grad():
         outputs = model(image)
-    # get score for all the predicted objects
-    pred_scores = outputs[0]['scores'].detach().cpu().numpy()
     # get all the predicted bounding boxes
-    pred_bboxes = outputs[0]['boxes'].detach().cpu().numpy()
-    # get boxes above the threshold score
-    boxes = pred_bboxes.astype(np.int32)
-    return boxes
+    return outputs[0]['boxes'].detach().cpu().numpy().astype(np.int32)
 
 #box_points = [xmin,ymin, xmax,ymax]
 def search_product(image, box_points):
