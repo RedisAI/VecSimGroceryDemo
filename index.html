@@ -2,7 +2,7 @@
     <head>
         <title></title>
         
-        <meta name="color-scheme" content="dark light">
+        <meta name="color-scheme" content="dark">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <style>
@@ -23,6 +23,13 @@
                 height: 100%;
             }
 
+            section.camera-container > div.boxes > button {
+                position: absolute;
+                background: transparent;
+                border: 2px solid;
+                z-index: 1;
+            }
+
             section.camera-container > div.products {
                 position: absolute;
                 top: 1em;
@@ -31,6 +38,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 1em;
+                z-index: 1;
             }
 
             section.camera-container > div.products > div.product {
@@ -106,14 +114,16 @@
                 bottom: 0;
                 border-radius: 100%;
                 border: none;
-                opacity: 0;
-                transition: opacity 0.2s;
+                opacity: 0.5;
+                scale: 0;
+                transition: opacity 0.2s, scale 0.2s;
                 background-color: transparent;
+                padding: 0.75em;
             }
 
             section.camera-container > div.buttons > button.pause > i {
                 display: inline-block;
-                width: 1.5em;
+                width: 1.25em;
                 aspect-ratio: 1;
                 background-color: #ea4d3e;
                 border-radius: 0.25em;
@@ -122,11 +132,14 @@
 
             section.camera-container.on > div.buttons > button.pause {
                 opacity: 1;
+                scale: 1;
             }
         </style>
     </head>
     <body>
         <section class="camera-container">
+            <div class="boxes"></div>
+
             <video></video>
 
             <div class="products"></div>
@@ -144,8 +157,8 @@
 
         <script>
             const cameraContainer = document.querySelector('section.camera-container'),
-                video = cameraContainer.querySelector('video'),
-                canvas = document.createElement('canvas'),
+                boxes = document.querySelector('div.boxes'),
+                video = cameraContainer.querySelector('video'),    
                 products = document.querySelector('div.products');
 
             function mainButton() {
@@ -154,12 +167,13 @@
 
             async function startCamera() {
                 cameraContainer.classList.add('on');
+                boxes.replaceChildren();
                 try {
                     video.srcObject = await navigator.mediaDevices.getUserMedia({
                         video: true,
                         audio: false
                     });
-                    video.addEventListener('loadedmetadata', () => video.play(), { once: true });
+                    video.play();
                 } catch (err) {
                     alert(`Start camera error ${err.message}`);
                     console.error(err);
@@ -173,22 +187,41 @@
                 video.srcObject = null;
             }
 
+            const searchCanvas = document.createElement('canvas');
             async function search() {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
+                video.pause();
+                cameraContainer.classList.remove('on');
 
+                searchCanvas.width = video.videoWidth;
+                searchCanvas.height = video.videoHeight;
+                searchCanvas.getContext('2d').drawImage(video, 0, 0);
+                
                 const body = new FormData();
-                body.set('image', await toBlobAsync(canvas, 'image/jpeg'));
-                    
+                body.set('image', await toBlobAsync(searchCanvas, 'image/jpeg'));
+
                 const response = await fetch('/search', {
                     method: 'POST',
                     body
                 });
 
-                products.replaceChildren();
-                for (const product of (await response.json()).products) {
-                    appendProductDiv(product);
+                boxes.replaceChildren();
+                const offsetTop = (video.clientHeight - video.videoHeight) / 2;
+                for (const { box, products: p } of (await response.json()).results) {
+                    console.log(box, p[0].distance, `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`);
+                    const button = document.createElement('button');
+                    button.style.top = `${offsetTop + box[0]}px`;
+                    button.style.left = `${box[1]}px`;
+                    button.style.width = `${box[2] - box[0]}px`;
+                    button.style.height = `${box[3] - box[1]}px`;
+                    button.style.borderColor = `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`;
+                    button.addEventListener('click', () => {
+                        products.replaceChildren();
+                        for (const product of p) {
+                            appendProductDiv(product);
+                        }
+                    });
+                    button.appendChild(document.createTextNode(products?.[0]?.distance))
+                    boxes.appendChild(button);
                 }
             }
 
@@ -202,17 +235,22 @@
                 });
             }
 
+            // drawBoxes([
+            //     { x: 0, y: 0, width: 100, height: 100 },
+            //     { x: 100, y: 0, width: 100, height: 100 }
+            // ]);
+
             function appendProductDiv(product) {
                 const div = document.createElement('div');
                 div.classList.add('product');
 
                 const img = document.createElement('img');
-                img.setAttribute('src', product.images?.[0]);
+                img.setAttribute('src', product.image);
                 div.appendChild(img);
 
                 const name = document.createElement('div');
                 name.classList.add('name');
-                name.appendChild(document.createTextNode(product.names.short));
+                name.appendChild(document.createTextNode(product.name));
                 div.appendChild(name);
 
                 const add = document.createElement('button');
@@ -225,7 +263,7 @@
             }
 
             function addToCart(product) {
-                alert(`${product.names.short} was added to cart`);
+                alert(`${product.name} was added to cart`);
                 products.replaceChildren();
             }
         </script>
