@@ -16,21 +16,38 @@
                 width: 100%;
                 height: 100%;
                 font-family: Arial, Helvetica, sans-serif;
+                background-color: #000000;
             }
 
-            section.camera-container, section.camera-container > video {
+            body {
+                display: flex;
+                flex-direction: column;
+            }
+
+            div.video-container {
+                flex: 1;
+                position: relative;
+                display: grid;
+                align-items: center;
+            }
+
+            div.video-container > video {
                 width: 100%;
-                height: 100%;
             }
 
-            section.camera-container > div.boxes > button {
+            div.video-container > div.boxes {
+                position: absolute;
+                top: 0;
+            }
+
+            div.boxes > button {
                 position: absolute;
                 background: transparent;
                 border: 2px solid;
                 z-index: 1;
             }
 
-            section.camera-container > div.products {
+            div.products {
                 position: absolute;
                 top: 1em;
                 left: 1em;
@@ -41,7 +58,7 @@
                 z-index: 1;
             }
 
-            section.camera-container > div.products > div.product {
+            div.products > div.product {
                 display: flex;
                 align-items: center;
                 background: #212122;
@@ -49,32 +66,31 @@
                 padding: 0.5em;
             }
 
-            section.camera-container > div.products > div.product > img {
+            div.products > div.product > img {
                 width: 3em;
                 height: 3em;
                 padding: 0.25em;
                 object-fit: contain;
             }
 
-            section.camera-container > div.products > div.product > div.name {
+            div.products > div.product > div.name {
                 flex: 1 1 auto;
             }
 
-            section.camera-container > div.buttons {
-                position: absolute;
-                bottom: 1em;
-                left: 1em;
-                right: 1em;
+            div.buttons {
+                background-color: #111111;
+                position: relative;
                 text-align: center;
+                padding: 1em;
             }
 
-            section.camera-container > div.buttons > button {
+            div.buttons > button {
                 aspect-ratio: 1;
                 border-radius: 100%;
                 border: none;
             }
 
-            section.camera-container > div.buttons > button:before {
+            div.buttons > button:before {
                 content: '';
                 position: absolute;
                 inset: -5px;
@@ -82,18 +98,18 @@
                 border: 3px solid white;
             }
 
-            section.camera-container > div.buttons > button.record {
+            div.buttons > button.record {
                 width: 4em;
                 background-color: #ea4d3e;
                 position: relative;
                 transition: background-color 0.2s;
             }
 
-            section.camera-container.on > div.buttons > button.record {
+            body[camera='on'] > div.buttons > button.record {
                 background-color: transparent;
             }
 
-            section.camera-container > div.buttons > button.record > svg {
+            div.buttons > button.record > svg {
                 fill: currentColor;
                 width: 2.5em;
                 aspect-ratio: 1;
@@ -104,16 +120,14 @@
                 transition: scale 0.2s;
             }
 
-            section.camera-container.on > div.buttons > button.record > svg {
+            body[camera='on'] > div.buttons > button.record > svg {
                 scale: 1;
             }
 
-            section.camera-container > div.buttons > button.pause {
+            div.buttons > button.pause {
                 position: absolute;
-                right: 0;
-                bottom: 0;
-                border-radius: 100%;
-                border: none;
+                right: 1em;
+                bottom: 1em;
                 opacity: 0.5;
                 scale: 0;
                 transition: opacity 0.2s, scale 0.2s;
@@ -121,7 +135,7 @@
                 padding: 0.75em;
             }
 
-            section.camera-container > div.buttons > button.pause > i {
+            div.buttons > button.pause > i {
                 display: inline-block;
                 width: 1.25em;
                 aspect-ratio: 1;
@@ -130,72 +144,73 @@
                 margin: auto;
             }
 
-            section.camera-container.on > div.buttons > button.pause {
+            body[camera='on'] > div.buttons > button.pause {
                 opacity: 1;
                 scale: 1;
             }
         </style>
     </head>
     <body>
-        <section class="camera-container">
-            <div class="boxes"></div>
-
+        <div class="video-container">
             <video playsinline autoplay></video>
+            <div class="boxes"></div>
+        </div>
 
-            <div class="products"></div>
+        <div class="products"></div>
 
-            <div class="buttons">
-                <button type="button" class="record" onclick="mainButton()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M39.8 41.95 26.65 28.8q-1.5 1.3-3.5 2.025-2 .725-4.25.725-5.4 0-9.15-3.75T6 18.75q0-5.3 3.75-9.05 3.75-3.75 9.1-3.75 5.3 0 9.025 3.75 3.725 3.75 3.725 9.05 0 2.15-.7 4.15-.7 2-2.1 3.75L42 39.75Zm-20.95-13.4q4.05 0 6.9-2.875Q28.6 22.8 28.6 18.75t-2.85-6.925Q22.9 8.95 18.85 8.95q-4.1 0-6.975 2.875T9 18.75q0 4.05 2.875 6.925t6.975 2.875Z"/></svg>
-                </button>
+        <div class="buttons">
+            <button type="button" class="record" onclick="mainButton()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M39.8 41.95 26.65 28.8q-1.5 1.3-3.5 2.025-2 .725-4.25.725-5.4 0-9.15-3.75T6 18.75q0-5.3 3.75-9.05 3.75-3.75 9.1-3.75 5.3 0 9.025 3.75 3.725 3.75 3.725 9.05 0 2.15-.7 4.15-.7 2-2.1 3.75L42 39.75Zm-20.95-13.4q4.05 0 6.9-2.875Q28.6 22.8 28.6 18.75t-2.85-6.925Q22.9 8.95 18.85 8.95q-4.1 0-6.975 2.875T9 18.75q0 4.05 2.875 6.925t6.975 2.875Z"/></svg>
+            </button>
 
-                <button type="button" class="pause" onclick="pauseCamera()">
-                    <i></i>
-                </button>
-            </div>
-        </section>
+            <button type="button" class="pause" onclick="pauseCamera()">
+                <i></i>
+            </button>
+        </div>
 
         <script>
-            const cameraContainer = document.querySelector('section.camera-container'),
-                boxes = document.querySelector('div.boxes'),
-                video = cameraContainer.querySelector('video'),    
-                products = document.querySelector('div.products');
+            const ELEMENTS = {
+                video: document.querySelector('div.video-container > video'),
+                boxes: document.querySelector('div.video-container > div.boxes'),
+                products: document.querySelector('div.products')
+            };
+
+            function setCameraState(state) {
+                document.body.setAttribute('camera', state ? 'on' : 'off');
+            }
 
             function mainButton() {
-                (video.paused ? startCamera : search)();
+                (document.body.getAttribute('camera') === 'on' ? search : startCamera)();
             }
 
             async function startCamera() {
-                cameraContainer.classList.add('on');
-                boxes.replaceChildren();
-                try {
-                    video.srcObject = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: 'environment'
-                        },
-                        audio: false
-                    });
-                } catch (err) {
-                    alert(`Start camera error ${err.message}`);
-                    console.error(err);
-                    cameraContainer.classList.remove('on');
-                }
+                setCameraState(true);
+                ELEMENTS.boxes.replaceChildren();
+                ELEMENTS.products.replaceChildren();
+                ELEMENTS.video.srcObject = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment'
+                    },
+                    audio: false
+                });
             }
 
             function pauseCamera() {
-                cameraContainer.classList.remove('on');
-                video.pause();
+                setCameraState(false);
+                for (const track of video.srcObject.getTracks()) {
+                    track.stop();
+                }
                 video.srcObject = null;
             }
 
             const searchCanvas = document.createElement('canvas');
             async function search() {
-                video.pause();
-                cameraContainer.classList.remove('on');
+                setCameraState(false);
+                ELEMENTS.video.pause();
 
-                searchCanvas.width = video.videoWidth;
-                searchCanvas.height = video.videoHeight;
-                searchCanvas.getContext('2d').drawImage(video, 0, 0);
+                searchCanvas.width = ELEMENTS.video.videoWidth;
+                searchCanvas.height = ELEMENTS.video.videoHeight;
+                searchCanvas.getContext('2d').drawImage(ELEMENTS.video, 0, 0);
                 
                 const body = new FormData();
                 body.set('image', await toBlobAsync(searchCanvas, 'image/jpeg'));
@@ -205,25 +220,52 @@
                     body
                 });
 
-                boxes.replaceChildren();
-                const offsetTop = (video.clientHeight - video.videoHeight) / 2;
-                for (const { box, products: p } of (await response.json()).results) {
-                    console.log(box, p[0].distance, `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`);
-                    const button = document.createElement('button');
-                    button.style.top = `${offsetTop + box[0]}px`;
-                    button.style.left = `${box[1]}px`;
-                    button.style.width = `${box[2] - box[0]}px`;
-                    button.style.height = `${box[3] - box[1]}px`;
-                    button.style.borderColor = `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`;
-                    button.addEventListener('click', () => {
-                        products.replaceChildren();
-                        for (const product of p) {
+                ELEMENTS.boxes.replaceChildren();
+                ELEMENTS.products.replaceChildren();
+
+                const relativeWidth = ELEMENTS.video.clientWidth / ELEMENTS.video.videoWidth,
+                    relativeHeight = ELEMENTS.video.clientHeight / ELEMENTS.video.videoHeight;
+                for (const result of (await response.json()).results) {
+                    const box = document.createElement('button');
+                    box.style.left = `${result.box[0] * relativeWidth}px`;
+                    box.style.top = `${result.box[1] * relativeHeight + ELEMENTS.video.offsetTop}px`;
+                    box.style.width = `${(result.box[2] - result.box[0]) * relativeWidth}px`;    
+                    box.style.height = `${(result.box[3] - result.box[1]) * relativeHeight}px`;
+                    box.style.borderColor = boxColor(result.products[0].distance);
+                    box.addEventListener('click', () => {
+                        ELEMENTS.products.replaceChildren();
+                        for (const product of result.products) {
                             appendProductDiv(product);
                         }
                     });
-                    button.appendChild(document.createTextNode(products?.[0]?.distance))
-                    boxes.appendChild(button);
+                    ELEMENTS.boxes.appendChild(box);
                 }
+
+                // boxes.replaceChildren();
+                // const offsetTop = (video.clientHeight - video.videoHeight) / 2;
+                // for (const { box, products: p } of (await response.json()).results) {
+                //     console.log(box, p[0].distance, `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`);
+                //     const button = document.createElement('button');
+                //     button.style.top = `${offsetTop + box[0]}px`;
+                //     button.style.left = `${box[1]}px`;
+                //     button.style.width = `${box[2] - box[0]}px`;
+                //     button.style.height = `${box[3] - box[1]}px`;
+                //     button.style.borderColor = `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`;
+                //     button.addEventListener('click', () => {
+                //         products.replaceChildren();
+                //         for (const product of p) {
+                //             appendProductDiv(product);
+                //         }
+                //     });
+                //     button.appendChild(document.createTextNode(products?.[0]?.distance))
+                //     boxes.appendChild(button);
+                // }
+            }
+
+            function boxColor(distance) {
+                if (distance < 0.1) return 'green';
+                if (distance < 0.3) return 'yellow';
+                return 'red';
             }
 
             function toBlobAsync(canvas, type, quality) {
@@ -236,17 +278,12 @@
                 });
             }
 
-            // drawBoxes([
-            //     { x: 0, y: 0, width: 100, height: 100 },
-            //     { x: 100, y: 0, width: 100, height: 100 }
-            // ]);
-
             function appendProductDiv(product) {
                 const div = document.createElement('div');
                 div.classList.add('product');
 
                 const img = document.createElement('img');
-                img.setAttribute('src', product.image.url);
+                img.setAttribute('src', product.image);
                 div.appendChild(img);
 
                 const name = document.createElement('div');
@@ -260,7 +297,7 @@
                 add.addEventListener('click', () => addToCart(product));
                 div.appendChild(add);
 
-                products.appendChild(div);
+                ELEMENTS.products.appendChild(div);
             }
 
             function addToCart(product) {
