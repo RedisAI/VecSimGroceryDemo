@@ -28,7 +28,7 @@
                 flex: 1;
                 position: relative;
                 display: grid;
-                align-items: center;
+                place-items: center;
             }
 
             div.video-container > video {
@@ -38,6 +38,7 @@
             div.video-container > div.boxes {
                 position: absolute;
                 top: 0;
+                left: 0;
             }
 
             div.boxes > button {
@@ -45,6 +46,10 @@
                 background: transparent;
                 border: 2px solid;
                 z-index: 1;
+            }
+
+            div.boxes > button.active {
+                outline: 2px solid #ffffff;
             }
 
             div.products {
@@ -225,6 +230,7 @@
 
                 const relativeWidth = ELEMENTS.video.clientWidth / ELEMENTS.video.videoWidth,
                     relativeHeight = ELEMENTS.video.clientHeight / ELEMENTS.video.videoHeight;
+                let activeBox;
                 for (const result of (await response.json()).results) {
                     const box = document.createElement('button');
                     box.style.left = `${result.box[0] * relativeWidth}px`;
@@ -233,6 +239,10 @@
                     box.style.height = `${(result.box[3] - result.box[1]) * relativeHeight}px`;
                     box.style.borderColor = boxColor(result.products[0].distance);
                     box.addEventListener('click', () => {
+                        if (activeBox) activeBox.classList.remove('active');
+
+                        activeBox = box;
+                        box.classList.add('active');
                         ELEMENTS.products.replaceChildren();
                         for (const product of result.products) {
                             appendProductDiv(product);
@@ -240,26 +250,6 @@
                     });
                     ELEMENTS.boxes.appendChild(box);
                 }
-
-                // boxes.replaceChildren();
-                // const offsetTop = (video.clientHeight - video.videoHeight) / 2;
-                // for (const { box, products: p } of (await response.json()).results) {
-                //     console.log(box, p[0].distance, `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`);
-                //     const button = document.createElement('button');
-                //     button.style.top = `${offsetTop + box[0]}px`;
-                //     button.style.left = `${box[1]}px`;
-                //     button.style.width = `${box[2] - box[0]}px`;
-                //     button.style.height = `${box[3] - box[1]}px`;
-                //     button.style.borderColor = `hsl(${Math.round(135 - (p[0].distance * 67.5))} 100% 50%)`;
-                //     button.addEventListener('click', () => {
-                //         products.replaceChildren();
-                //         for (const product of p) {
-                //             appendProductDiv(product);
-                //         }
-                //     });
-                //     button.appendChild(document.createTextNode(products?.[0]?.distance))
-                //     boxes.appendChild(button);
-                // }
             }
 
             function boxColor(distance) {
@@ -283,7 +273,7 @@
                 div.classList.add('product');
 
                 const img = document.createElement('img');
-                img.setAttribute('src', product.image);
+                img.setAttribute('src', product.image.endsWith('.zip') ? `${product.image}/0.jpg` : product.image);
                 div.appendChild(img);
 
                 const name = document.createElement('div');
