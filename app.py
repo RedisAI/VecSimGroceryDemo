@@ -86,7 +86,7 @@ def search():
 
 def getTopK(query_vector, k = 10, filter = '*'):
     q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
-        .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0]', 'image')
+        .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0].url', 'image')
     start = time.time()
     res = redis.ft().search(q, query_params={'vec_param': query_vector.tobytes()})
     search_time = time.time() - start
