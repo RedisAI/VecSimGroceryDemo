@@ -43,12 +43,27 @@ def load_models_to_redis(redis, detection_model, img2vec):
 
 
 # Get the model
-def get_detection_model(device):
+def get_detection_model_old(device):
     # load the model
     weights = model_weights.COCO_V1
     model = model_func(weights=weights, box_score_thresh=threshold, score_thresh=threshold)
     # load the model onto the computation device
     model = model.eval().to(device)
+    return model
+
+
+def get_detection_model(weights, device=torch.device('cpu'), fp16=True, fuse=True):
+
+    from yolov5.models.experimental import attempt_load
+
+    w = str(weights)
+    model = attempt_load(w, device=device, inplace=True, fuse=fuse)
+    # stride = max(int(model.stride.max()), 32)  # model stride
+    # names = model.module.names if hasattr(model, 'module') else model.names  # get class names
+
+    if fp16:
+        model.half()  # fp16
+
     return model
 
 
@@ -93,8 +108,7 @@ img2vec = Img2Vec()
 
 #g_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 g_device = 'cpu'
-print(g_device)
-
+weights = 'best.pt'
 threshold = 0.5
 
 # define the torchvision image transforms
@@ -102,7 +116,7 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-g_model = get_detection_model(g_device)
+g_model = get_detection_model(weights, fp16=False)
 load_models_to_redis(redis, g_model, img2vec)  # Use RedisAI
 
 @app.route('/')
