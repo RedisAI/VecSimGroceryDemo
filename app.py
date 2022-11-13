@@ -3,18 +3,24 @@ from flask import Flask, request, send_file
 from img2vec_pytorch import Img2Vec
 from PIL import Image
 from redis import Redis
-import numpy as np
-import torch
-from torchvision.models.detection import retinanet_resnet50_fpn_v2 as model_func, RetinaNet_ResNet50_FPN_V2_Weights as model_weights
-# from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2 as model_func, FasterRCNN_ResNet50_FPN_V2_Weights as model_weights
-from torchvision import transforms
 
 from redis.commands.search.query import Query
 import time
 
+import torch
+from torchvision import transforms
+
+from pathlib import Path
+
+import torch
+
+FILE = Path(__file__).resolve()
+
+from yolov5.utils.general import non_max_suppression
+from yolov5.models.experimental import attempt_load
+
 
 def load_models_to_redis(redis, detection_model, img2vec):
-
     # Convert the encoding model from torch to onnx and store it in RedisAI
     model_with_pruned_last_layer = img2vec.model
     model_with_pruned_last_layer.fc = torch.nn.Identity()
@@ -33,50 +39,38 @@ def load_models_to_redis(redis, detection_model, img2vec):
     detection_model_file_name = "retina-net.onnx"
     input_names = ['image']
     output_name = ['bounding_boxes']
-    # torch.onnx.export(detection_model, dummy_input, detection_model_file_name, verbose=False,
-    #                   input_names=input_names, output_names=output_name, dynamic_axes={'image': [2, 3]})
     torch.onnx.export(detection_model, dummy_input, detection_model_file_name, verbose=False,
-                      input_names=input_names, output_names=output_name)
+                      input_names=input_names, output_names=output_name, dynamic_axes={'image': [2, 3]})
+
     with open(detection_model_file_name, 'rb') as f:
         model_blob = f.read()
         redis.execute_command('AI.MODELSTORE', 'detection_model', 'ONNX', 'CPU', 'BLOB', model_blob)
 
 
+app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+redis = Redis()
+img2vec = Img2Vec()
+
+weights = 'best.pt'
+g_threshold = 0.4
+g_max_det = 10
+g_device = torch.device('cpu')
+g_model = attempt_load(weights, device=g_device)
+load_models_to_redis(redis, g_model, img2vec)  # Use RedisAI
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+])
+
+
 # Get the model
-def get_detection_model_old(device):
-    # load the model
-    weights = model_weights.COCO_V1
-    model = model_func(weights=weights, box_score_thresh=threshold, score_thresh=threshold)
-    # load the model onto the computation device
-    model = model.eval().to(device)
-    return model
-
-
-def get_detection_model(weights, device=torch.device('cpu'), fp16=True, fuse=True):
-
-    from yolov5.models.experimental import attempt_load
-
-    w = str(weights)
-    model = attempt_load(w, device=device, inplace=True, fuse=fuse)
-    # stride = max(int(model.stride.max()), 32)  # model stride
-    # names = model.module.names if hasattr(model, 'module') else model.names  # get class names
-
-    if fp16:
-        model.half()  # fp16
-
-    return model
-
-
-def get_boxes(image, model, device):
-    # transform the image to tensor
-    image = transform(image).to(device)
-    # add a batch dimension
-    image = image.unsqueeze(0)
-    # get the predictions on the image
-    with torch.no_grad():
-        outputs = model(image)
-    # get all the predicted bounding boxes
-    return outputs[0]['boxes'].detach().cpu().numpy().astype(np.int32)
+def get_boxes(image, model, threshold, max_det):
+    img = transform(image).to(g_device)[None]
+    predictions = model(img)
+    detections = non_max_suppression(predictions, conf_thres=threshold, max_det=max_det)
+    return detections[0][:, :4].tolist()
 
 #box_points = [xmin,ymin, xmax,ymax]
 def search_product(image, box_points):
@@ -86,38 +80,6 @@ def search_product(image, box_points):
     res, search_time = getTopK(query_vector, 4)
     print('KNN search time\t', search_time)
     return res
-
-
-def getTopK(query_vector, k = 10, filter = '*'):
-    q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
-        .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0].url', 'image')
-    start = time.time()
-    res = redis.ft().search(q, query_params={'vec_param': query_vector.tobytes()})
-    search_time = time.time() - start
-
-    return [doc.__dict__ for doc in res.docs], search_time
-
-
-app = Flask(__name__)
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-
-redis = Redis()
-img2vec = Img2Vec()
-
-# define the computation device
-
-#g_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-g_device = 'cpu'
-weights = 'best.pt'
-threshold = 0.5
-
-# define the torchvision image transforms
-transform = transforms.Compose([
-    transforms.ToTensor(),
-])
-
-g_model = get_detection_model(weights, fp16=False)
-load_models_to_redis(redis, g_model, img2vec)  # Use RedisAI
 
 @app.route('/')
 def index():
@@ -132,14 +94,23 @@ def search():
     image = Image.open(file)
 
     start = time.time()
-    boxes = get_boxes(image, g_model, g_device)
+    boxes = get_boxes(image, g_model, g_threshold, g_max_det)
     print('boxing time\t', time.time() - start)
 
     return {
         'results': [
             {
-                'box': box.tolist(),
+                'box': box,
                 'products': search_product(image, box)
             } for box in boxes
         ]
     }
+
+def getTopK(query_vector, k = 10, filter = '*'):
+    q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
+        .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0].url', 'image')
+    start = time.time()
+    res = redis.ft().search(q, query_params={'vec_param': query_vector.tobytes()})
+    search_time = time.time() - start
+
+    return [doc.__dict__ for doc in res.docs], search_time
