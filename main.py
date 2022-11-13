@@ -14,6 +14,7 @@ host = "localhost"
 port = 6379
 prod_prefix = 'product:'
 
+
 def create_index_in_redis(dim, vector_field_name):
     redis = Redis(host=host, port=port)
     redis.flushall()
