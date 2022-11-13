@@ -3,21 +3,14 @@ from flask import Flask, request, send_file
 from img2vec_pytorch import Img2Vec
 from PIL import Image
 from redis import Redis
+import numpy as np
+import torch
+from torchvision.models.detection import retinanet_resnet50_fpn_v2 as model_func, RetinaNet_ResNet50_FPN_V2_Weights as model_weights
+# from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2 as model_func, FasterRCNN_ResNet50_FPN_V2_Weights as model_weights
+from torchvision import transforms
 
 from redis.commands.search.query import Query
 import time
-
-import torch
-from torchvision import transforms
-
-from pathlib import Path
-
-import torch
-
-FILE = Path(__file__).resolve()
-
-from yolov5.utils.general import non_max_suppression
-from yolov5.models.experimental import attempt_load
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -25,26 +18,37 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 redis = Redis()
 img2vec = Img2Vec()
 
-weights = 'best.pt'
-g_threshold = 0.4
-g_max_det = 10
+# define the computation device
 g_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-g_model = attempt_load(weights, device=g_device)
 
+threshold = 0.5
+
+# define the torchvision image transforms
 transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
 # Get the model
-def get_boxes(image, model, threshold, max_det):
+def get_detection_model(device):
+    # load the model
+    weights = model_weights.COCO_V1
+    model = model_func(weights=weights, box_score_thresh=threshold, score_thresh=threshold)
+    # load the model onto the computation device
+    model = model.eval().to(device)
+    return model
 
-    img = transform(image).to(g_device)[None]
+g_model = get_detection_model(g_device)
 
-    predictions = model(img)
-
-    detections = non_max_suppression(predictions, conf_thres=threshold, max_det=max_det)
-
-    return detections[0][:, :4].tolist()
+def get_boxes(image, model, device):
+    # transform the image to tensor
+    image = transform(image).to(device)
+    # add a batch dimension
+    image = image.unsqueeze(0)
+    # get the predictions on the image
+    with torch.no_grad():
+        outputs = model(image)
+    # get all the predicted bounding boxes
+    return outputs[0]['boxes'].detach().cpu().numpy().astype(np.int32)
 
 #box_points = [xmin,ymin, xmax,ymax]
 def search_product(image, box_points):
@@ -68,13 +72,13 @@ def search():
     image = Image.open(file)
 
     start = time.time()
-    boxes = get_boxes(image, g_model, g_threshold, g_max_det)
+    boxes = get_boxes(image, g_model, g_device)
     print('boxing time\t', time.time() - start)
 
     return {
         'results': [
             {
-                'box': box,
+                'box': box.tolist(),
                 'products': search_product(image, box)
             } for box in boxes
         ]
