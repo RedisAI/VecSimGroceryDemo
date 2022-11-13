@@ -60,6 +60,10 @@ g_device = torch.device('cpu')
 g_model = attempt_load(weights, device=g_device)
 load_models_to_redis(redis, g_model, img2vec)  # Use RedisAI
 
+# Load gear that runs the flow in RedisGears
+with open("gear.py") as f:
+    redis.execute_command("RG.PYEXECUTE", f.read(), 'REQUIREMENTS', "yolov5", "torchvision", "img2vec_pytorch", "time")
+
 transform = transforms.Compose([
     transforms.ToTensor(),
 ])
@@ -92,19 +96,20 @@ def search():
 
     file = request.files['image']
     image = Image.open(file)
+    redis.execute_command("RG.TRIGGER", 'RunSearchFlow', image, g_device, g_threshold, g_max_det)
 
-    start = time.time()
-    boxes = get_boxes(image, g_model, g_threshold, g_max_det)
-    print('boxing time\t', time.time() - start)
-
-    return {
-        'results': [
-            {
-                'box': box,
-                'products': search_product(image, box)
-            } for box in boxes
-        ]
-    }
+    # start = time.time()
+    # boxes = get_boxes(image, g_model, g_threshold, g_max_det)
+    # print('boxing time\t', time.time() - start)
+    #
+    # return {
+    #     'results': [
+    #         {
+    #             'box': box,
+    #             'products': search_product(image, box)
+    #         } for box in boxes
+    #     ]
+    # }
 
 def getTopK(query_vector, k = 10, filter = '*'):
     q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k)\
