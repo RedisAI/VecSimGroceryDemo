@@ -36,11 +36,11 @@ def load_models_to_redis(redis, detection_model, encoding_model, tag='v0'):
 
 def main():
     print("Loading pretrained detection and encoding models into Redis (using RedisAI)...")
-    redis = Redis(host='localhost', port=6379, decode_responses=True)
+    redis = Redis(host='redis', port=6379, decode_responses=True)
 
     # Use a pretrained object detection model based on yolov5 (https://github.com/ultralytics/yolov5),
     # after performing fine-tuning ('best.pt' are the model weights after fine-tuning).
-    weights = os.path.dirname(__file__) + '/models/best.pt'
+    weights = os.path.dirname(os.path.dirname(__file__)) + '/models/best.pt'
     device = torch.device('cpu')  # can change to 'cuda'
     detection_model = attempt_load(weights, device=device)
 
