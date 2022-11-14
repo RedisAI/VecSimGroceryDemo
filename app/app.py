@@ -17,7 +17,8 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 redis = Redis(decode_responses=True)
 img2vec = Img2Vec()
 
-g_threshold = 0.4
+g_conf_threshold = 0.2
+g_overlap_threshold = 0.7
 g_max_detections = 10
 
 
@@ -45,6 +46,7 @@ def search():
     # 2. for every detected object:
     # 2.1 crop the image and run the encoding model to get the relevant embedding
     # 2.2 search for the top 4 similar products stored in the database, and return them
-    res = redis.execute_command("RG.TRIGGER", 'RunSearchFlow', img_base_64, g_threshold, g_max_detections)[0]
+    res = redis.execute_command("RG.TRIGGER", 'RunSearchFlow', img_base_64, g_conf_threshold, g_overlap_threshold,
+                                g_max_detections)[0]
     print(f"Total flow took: {time.time()-start}")
     return json.loads(res)

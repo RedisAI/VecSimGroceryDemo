@@ -34,7 +34,7 @@ def getTopK(query_vector, k=10, filter='*'):
 
 
 # Get bounding boxes of objects that are detected in the image
-async def get_boxes(image, device, threshold, max_det):
+async def get_boxes(image, device, conf_threshold, overlap_threshold, max_det):
     # Transform the image into a tensor in RedisAI format, and set it as the model's input.
     start = time.time()
     img = to_tensor(image).to(device)[None].numpy()
@@ -52,7 +52,8 @@ async def get_boxes(image, device, threshold, max_det):
     for i in range(len(outputs)):
         _, data_type, _, shape, _, blob = execute("AI.TENSORGET", f"out_{i}")  # run redis command
         outputs[i] = torch.tensor(np.ndarray(shape, dtype=np.float32, buffer=blob), device=device)
-    detections = non_max_suppression(outputs, conf_thres=float(threshold), max_det=int(max_det))
+    detections = non_max_suppression(outputs, conf_thres=float(conf_threshold), iou_thres=float(overlap_threshold),
+                                     max_det=int(max_det))
     log(f"boxing time is: {time.time()-start}")
     return detections[0][:, :4].tolist()
 
@@ -80,13 +81,13 @@ async def search_product(image, box_points, device):
     return res
 
 
-# args: [image, threshold, max_det]
+# args: [image, conf_threshold, overlap_threshold, max_det]
 async def run_flow(args):
     device = torch.device('cpu')  # can change to 'cuda'
     # Deserialize the encoded image.
     image = Image.open(io.BytesIO(base64.b64decode((args[1]))))
     # Run the detection model to get the bounding boxes of objects in the image.
-    boxes = await get_boxes(image, device, args[2], args[3])
+    boxes = await get_boxes(image, device, args[2], args[3], args[4])
 
     return json.dumps({
         'results': [
