@@ -5,7 +5,7 @@ services:
     ports:
      - "5000:5000"
   redis:
-    image: redislabs/groceriesdemo:latest
+    image: redisfab/grocerydemo:latest
     command: redis-server /data/redis.conf
     ports:
      - "6379:6379"
