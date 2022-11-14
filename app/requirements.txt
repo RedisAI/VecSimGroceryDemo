@@ -1,0 +1,8 @@
+torch
+torchvision
+img2vec_pytorch
+flask
+redis
+numpy
+yolov5
+torch
