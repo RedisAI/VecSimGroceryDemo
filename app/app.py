@@ -25,6 +25,7 @@ g_max_detections = 10
 def index():
     return send_file('index.html')
 
+
 @app.route('/search', methods=['POST'])
 def search():
     if 'image' not in request.files:
