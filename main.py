@@ -26,6 +26,7 @@ def create_index_in_redis(dim, vector_field_name):
         TagField("$.names.long", as_name='long_name'),
         TagField("$.family.name", as_name='family'),
         )
+
     redis.ft().create_index(schema, definition=IndexDefinition(prefix=[prod_prefix], index_type=IndexType.JSON))
     redis.ft().config_set("default_dialect", 2)
 
