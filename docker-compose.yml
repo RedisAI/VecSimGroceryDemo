@@ -1,13 +1,11 @@
 version: "3.9"
 services:
   app:
-    build: ./app
+    build: app
     ports:
-      - "5000:5000"
+     - "5000:5000"
   redis:
-    command: redis-server /items/redis.conf
-    image: "redislabs/redisearch:2.6.1"
-    volumes:
-       - "./redis:/items"
+    image: redisfab/grocerydemo:latest
+    command: redis-server /data/redis.conf
     ports:
-      - "6379:6379"
+     - "6379:6379"
