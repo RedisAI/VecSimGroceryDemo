@@ -1,8 +1,22 @@
+import argparse
 import os
-from redis import Redis
+import time
+from urllib.parse import urlparse
+
+from redis import Redis, exceptions
 import torch
 from img2vec_pytorch import Img2Vec
 from yolov5.models.experimental import attempt_load
+
+
+# Busy wait for Redis until it finishes loading the RDB in memory upon loading
+def wait_for_redis(redis):
+    while True:
+        try:
+            redis.ping()
+            return
+        except exceptions.BusyLoadingError:
+            time.sleep(5)
 
 
 def load_models_to_redis(redis, detection_model, encoding_model, tag='v0'):
@@ -36,11 +50,18 @@ def load_models_to_redis(redis, detection_model, encoding_model, tag='v0'):
 
 def main():
     print("Loading pretrained detection and encoding models into Redis (using RedisAI)...")
-    redis = Redis(host='redis', port=6379, decode_responses=True)
+
+    # Connect to redis-server, wait for it to be ready to accept connections.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-rs', '--redis_server', help='Redis URL', type=str, default='redis://127.0.0.1:6379')
+    args = parser.parse_args()
+    url = urlparse(args.redis_server)
+    redis = Redis(host=url.hostname, port=url.port, decode_responses=True)
+    wait_for_redis(redis)
 
     # Use a pretrained object detection model based on yolov5 (https://github.com/ultralytics/yolov5),
     # after performing fine-tuning ('best.pt' are the model weights after fine-tuning).
-    weights = os.path.dirname(os.path.dirname(__file__)) + '/models/best.pt'
+    weights = os.path.dirname(os.path.abspath(__file__)) + '/models/best.pt'
     device = torch.device('cpu')  # can change to 'cuda'
     detection_model = attempt_load(weights, device=device)
 
@@ -52,7 +73,7 @@ def main():
 
     # Load gear that runs the flow in RedisGears
     print("Loading application flow recipe into RedisGears (using internal Python interpreter)...")
-    gear_path = os.path.dirname(__file__) + '/../app/gear.py'
+    gear_path = os.path.dirname(os.path.abspath(__file__)) + '/../app_redisai/gear.py'
     with open(gear_path) as f:
         redis.execute_command("RG.PYEXECUTE", f.read(), 'ID', 'flow', 'UPGRADE', 'REQUIREMENTS', "yolov5",
                               "torchvision")
