@@ -4,6 +4,7 @@ import json
 import time
 
 from flask import Flask, request, send_file
+from logging import INFO
 from img2vec_pytorch import Img2Vec
 from PIL import Image
 from redis import Redis
@@ -13,6 +14,7 @@ FILE = Path(__file__).resolve()
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.logger.setLevel(INFO)
 
 redis = Redis(host='redis', decode_responses=True)
 img2vec = Img2Vec()
@@ -48,5 +50,5 @@ def search():
     # 2.2 search for the top 4 similar products stored in the database, and return them
     res = redis.execute_command("RG.TRIGGER", 'RunSearchFlow', img_base_64, g_conf_threshold, g_overlap_threshold,
                                 g_max_detections)[0]
-    print(f"Total flow took: {time.time()-start}")
+    app.logger.info(f"Total flow took: {time.time()-start} seconds")
     return json.loads(res)
