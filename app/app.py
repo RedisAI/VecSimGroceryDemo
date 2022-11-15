@@ -1,9 +1,7 @@
-import base64
-import io
-import json
 import time
 
 from flask import Flask, request, send_file
+from logging import INFO
 
 from redis import Redis
 from redis.commands.search.query import Query
@@ -22,6 +20,7 @@ FILE = Path(__file__).resolve()
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.logger.setLevel(INFO)
 
 redis = Redis(host='redis')
 img2vec = Img2Vec()
@@ -66,7 +65,7 @@ def search_product(image, box_points):
     query_vector = img2vec.get_vec(product)
 
     res, search_time = get_top_k(query_vector, 4)
-    print('KNN search time: ', search_time)
+    app.logger.info(f'KNN search time: {search_time}')
     return res
 
 
@@ -86,7 +85,7 @@ def search():
 
     start = time.time()
     boxes = get_boxes(image, g_model, g_conf_threshold, g_overlap_threshold, g_max_det)
-    print('boxing time: ', time.time() - start)
+    app.logger.info(f'boxing time: {time.time() - start}')
 
     res = {
         'results': [
@@ -96,5 +95,5 @@ def search():
             } for box in boxes
         ]
     }
-    print(f"Total flow took: {time.time()-flow_start} seconds")
+    app.logger.info(f"Total flow took: {time.time()-flow_start} seconds")
     return res
