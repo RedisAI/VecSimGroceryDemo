@@ -17,8 +17,10 @@ $ docker-compose up
 
 Upon lunching the demo, a Redis instance is created in a container with grocery items data loaded into it. Each product is represented by a JSON document that was preloaded using [RedisJSON](/docs/stack/json), and contain the following properties: id, brand, name, family, and **a list of vector embeddings that represent images of the product** from different angels. These documents are indexed using [RediSearch](/docs/stack/json).
 
+**Be aware:** the dataset contains ~30K products and overall almost 800K vectors (of size 512 floats), which require memory consumption of up to 15GB. Make sure that you run the demo on a machine with sufficient resources (otherwise the Redis process will be killed by the OS).   
+
 ### The flow
-Upon sending a `search` request to the app server, the following steps will take place:
+Upon sending a `search` request to the app server, the following steps take place:
 1. An image detection model (yolov5) will run and yield all the items that are recognized in the image.
 2. For every detected product: 
    1. An encoding model (the output of the second last layer of resnet-18) will generate a vector embedding of the product image (note that this is the same model that generated the vector embeddings for the stored products images).
