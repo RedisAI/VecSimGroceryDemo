@@ -1,4 +1,7 @@
+import time
+
 from flask import Flask, request, send_file
+from logging import INFO
 
 from redis import Redis
 from redis.commands.search.query import Query
@@ -17,6 +20,7 @@ FILE = Path(__file__).resolve()
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.logger.setLevel(INFO)
 
 redis = Redis(host='redis')
 img2vec = Img2Vec()
@@ -32,6 +36,7 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+
 # Get the model
 def get_boxes(image, model, conf_threshold, overlap_threshold, max_det):
     # Prepare image
@@ -43,41 +48,8 @@ def get_boxes(image, model, conf_threshold, overlap_threshold, max_det):
     # Return list of coordinations of the boxes
     return detections[0][:, :4].tolist()
 
-#box_points = [xmin,ymin, xmax,ymax]
-def search_product(image, box_points):
-    product = image.crop(box_points)
-    query_vector = img2vec.get_vec(product)
 
-    res, search_time = getTopK(query_vector, 4)
-    print('KNN search time\t', search_time)
-    return res
-
-@app.route('/')
-def index():
-    return send_file('index.html')
-
-@app.route('/search', methods=['POST'])
-def search():
-    if 'image' not in request.files:
-        return 'no image found', 400
-
-    file = request.files['image']
-    image = Image.open(file)
-
-    start = time.time()
-    boxes = get_boxes(image, g_model, g_conf_threshold, g_overlap_threshold, g_max_det)
-    print('boxing time\t', time.time() - start)
-
-    return {
-        'results': [
-            {
-                'box': box,
-                'products': search_product(image, box)
-            } for box in boxes
-        ]
-    }
-
-def getTopK(query_vector, k = 10, filter = '*'):
+def get_top_k(query_vector, k = 10, filter = '*'):
     q = Query(f'({filter})=>[KNN {k} @vectors $vec_param AS distance]').sort_by('distance').paging(0, k).dialect(2)\
         .return_fields('id', 'brand', 'name', 'family', 'distance').return_field('$.images[0].url', 'image')
     start = time.time()
@@ -85,3 +57,43 @@ def getTopK(query_vector, k = 10, filter = '*'):
     search_time = time.time() - start
 
     return [doc.__dict__ for doc in res.docs], search_time
+
+
+# box_points = [xmin,ymin, xmax,ymax]
+def search_product(image, box_points):
+    product = image.crop(box_points)
+    query_vector = img2vec.get_vec(product)
+
+    res, search_time = get_top_k(query_vector, 4)
+    app.logger.info(f'KNN search time: {search_time}')
+    return res
+
+
+@app.route('/')
+def index():
+    return send_file('index.html')
+
+
+@app.route('/search', methods=['POST'])
+def search():
+    if 'image' not in request.files:
+        return 'no image found', 400
+
+    flow_start = time.time()
+    file = request.files['image']
+    image = Image.open(file)
+
+    start = time.time()
+    boxes = get_boxes(image, g_model, g_conf_threshold, g_overlap_threshold, g_max_det)
+    app.logger.info(f'boxing time: {time.time() - start}')
+
+    res = {
+        'results': [
+            {
+                'box': box,
+                'products': search_product(image, box)
+            } for box in boxes
+        ]
+    }
+    app.logger.info(f"Total flow took: {time.time()-flow_start} seconds")
+    return res

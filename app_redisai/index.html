@@ -1,0 +1,299 @@
+<html>
+    <head>
+        <title></title>
+        
+        <meta name="color-scheme" content="dark">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                font-family: Arial, Helvetica, sans-serif;
+                background-color: #000000;
+            }
+
+            body {
+                display: flex;
+                flex-direction: column;
+            }
+
+            div.video-container {
+                flex: 1;
+                position: relative;
+                display: grid;
+                place-items: center;
+            }
+
+            div.video-container > video {
+                width: 100%;
+            }
+
+            div.video-container > div.boxes {
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+
+            div.boxes > button {
+                position: absolute;
+                background: transparent;
+                border: 2px solid;
+                z-index: 1;
+            }
+
+            div.boxes > button.active {
+                outline: 2px solid #ffffff;
+            }
+
+            div.products {
+                position: absolute;
+                top: 1em;
+                left: 1em;
+                right: 1em;
+                display: flex;
+                flex-direction: column;
+                gap: 1em;
+                z-index: 1;
+            }
+
+            div.products > div.product {
+                display: flex;
+                align-items: center;
+                background: #212122;
+                border-radius: 1em;
+                padding: 0.5em;
+            }
+
+            div.products > div.product > img {
+                width: 3em;
+                height: 3em;
+                padding: 0.25em;
+                object-fit: contain;
+            }
+
+            div.products > div.product > div.name {
+                flex: 1 1 auto;
+            }
+
+            div.buttons {
+                background-color: #111111;
+                position: relative;
+                text-align: center;
+                padding: 1em;
+            }
+
+            div.buttons > button {
+                aspect-ratio: 1;
+                border-radius: 100%;
+                border: none;
+            }
+
+            div.buttons > button:before {
+                content: '';
+                position: absolute;
+                inset: -5px;
+                border-radius: 100%;
+                border: 3px solid white;
+            }
+
+            div.buttons > button.record {
+                width: 4em;
+                background-color: #ea4d3e;
+                position: relative;
+                transition: background-color 0.2s;
+            }
+
+            body[camera='on'] > div.buttons > button.record {
+                background-color: transparent;
+            }
+
+            div.buttons > button.record > svg {
+                fill: currentColor;
+                width: 2.5em;
+                aspect-ratio: 1;
+                border-radius: 0.25em;
+                background-color: innerit;
+                margin: auto;
+                scale: 0;
+                transition: scale 0.2s;
+            }
+
+            body[camera='on'] > div.buttons > button.record > svg {
+                scale: 1;
+            }
+
+            div.buttons > button.pause {
+                position: absolute;
+                right: 1em;
+                bottom: 1em;
+                opacity: 0.5;
+                scale: 0;
+                transition: opacity 0.2s, scale 0.2s;
+                background-color: transparent;
+                padding: 0.75em;
+            }
+
+            div.buttons > button.pause > i {
+                display: inline-block;
+                width: 1.25em;
+                aspect-ratio: 1;
+                background-color: #ea4d3e;
+                border-radius: 0.25em;
+                margin: auto;
+            }
+
+            body[camera='on'] > div.buttons > button.pause {
+                opacity: 1;
+                scale: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="video-container">
+            <video playsinline autoplay></video>
+            <div class="boxes"></div>
+        </div>
+
+        <div class="products"></div>
+
+        <div class="buttons">
+            <button type="button" class="record" onclick="mainButton()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M39.8 41.95 26.65 28.8q-1.5 1.3-3.5 2.025-2 .725-4.25.725-5.4 0-9.15-3.75T6 18.75q0-5.3 3.75-9.05 3.75-3.75 9.1-3.75 5.3 0 9.025 3.75 3.725 3.75 3.725 9.05 0 2.15-.7 4.15-.7 2-2.1 3.75L42 39.75Zm-20.95-13.4q4.05 0 6.9-2.875Q28.6 22.8 28.6 18.75t-2.85-6.925Q22.9 8.95 18.85 8.95q-4.1 0-6.975 2.875T9 18.75q0 4.05 2.875 6.925t6.975 2.875Z"/></svg>
+            </button>
+
+            <button type="button" class="pause" onclick="pauseCamera()">
+                <i></i>
+            </button>
+        </div>
+
+        <script>
+            const ELEMENTS = {
+                video: document.querySelector('div.video-container > video'),
+                boxes: document.querySelector('div.video-container > div.boxes'),
+                products: document.querySelector('div.products')
+            };
+
+            function setCameraState(state) {
+                document.body.setAttribute('camera', state ? 'on' : 'off');
+            }
+
+            function mainButton() {
+                (document.body.getAttribute('camera') === 'on' ? search : startCamera)();
+            }
+
+            async function startCamera() {
+                setCameraState(true);
+                ELEMENTS.boxes.replaceChildren();
+                ELEMENTS.products.replaceChildren();
+                ELEMENTS.video.srcObject = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment'
+                    },
+                    audio: false
+                });
+            }
+
+            function pauseCamera() {
+                setCameraState(false);
+                for (const track of video.srcObject.getTracks()) {
+                    track.stop();
+                }
+                video.srcObject = null;
+            }
+
+            const searchCanvas = document.createElement('canvas');
+            async function search() {
+                setCameraState(false);
+                ELEMENTS.video.pause();
+
+                searchCanvas.width = ELEMENTS.video.videoWidth;
+                searchCanvas.height = ELEMENTS.video.videoHeight;
+                searchCanvas.getContext('2d').drawImage(ELEMENTS.video, 0, 0);
+                
+                const body = new FormData();
+                body.set('image', await toBlobAsync(searchCanvas, 'image/jpeg'));
+
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    body
+                });
+
+                ELEMENTS.boxes.replaceChildren();
+                ELEMENTS.products.replaceChildren();
+
+                const relativeWidth = ELEMENTS.video.clientWidth / ELEMENTS.video.videoWidth,
+                    relativeHeight = ELEMENTS.video.clientHeight / ELEMENTS.video.videoHeight;
+                let activeBox;
+                for (const result of (await response.json()).results) {
+                    const box = document.createElement('button');
+                    box.style.left = `${result.box[0] * relativeWidth}px`;
+                    box.style.top = `${result.box[1] * relativeHeight + ELEMENTS.video.offsetTop}px`;
+                    box.style.width = `${(result.box[2] - result.box[0]) * relativeWidth}px`;    
+                    box.style.height = `${(result.box[3] - result.box[1]) * relativeHeight}px`;
+                    box.style.borderColor = boxColor(result.products[0].distance);
+                    box.addEventListener('click', () => {
+                        if (activeBox) activeBox.classList.remove('active');
+
+                        activeBox = box;
+                        box.classList.add('active');
+                        ELEMENTS.products.replaceChildren();
+                        for (const product of result.products) {
+                            appendProductDiv(product);
+                        }
+                    });
+                    ELEMENTS.boxes.appendChild(box);
+                }
+            }
+
+            function boxColor(distance) {
+                if (distance < 0.1) return 'green';
+                if (distance < 0.3) return 'yellow';
+                return 'red';
+            }
+
+            function toBlobAsync(canvas, type, quality) {
+                return new Promise(resolve => {
+                    canvas.toBlob(
+                        blob => resolve(blob),
+                        type,
+                        quality
+                    );
+                });
+            }
+
+            function appendProductDiv(product) {
+                const div = document.createElement('div');
+                div.classList.add('product');
+
+                const img = document.createElement('img');
+                img.setAttribute('src', product.image.endsWith('.zip') ? `${product.image}/0.jpg` : product.image);
+                div.appendChild(img);
+
+                const name = document.createElement('div');
+                name.classList.add('name');
+                name.appendChild(document.createTextNode(product.name));
+                div.appendChild(name);
+
+                const add = document.createElement('button');
+                add.setAttribute('type', 'button');
+                add.appendChild(document.createTextNode('+'));                
+                add.addEventListener('click', () => addToCart(product));
+                div.appendChild(add);
+
+                ELEMENTS.products.appendChild(div);
+            }
+
+            function addToCart(product) {
+                alert(`${product.name} was added to cart`);
+                products.replaceChildren();
+            }
+        </script>
+    </body>
+</html>
