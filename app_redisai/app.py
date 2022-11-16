@@ -5,7 +5,6 @@ import time
 
 from flask import Flask, request, send_file
 from logging import INFO
-from img2vec_pytorch import Img2Vec
 from PIL import Image
 from redis import Redis
 from pathlib import Path
@@ -17,7 +16,6 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.logger.setLevel(INFO)
 
 redis = Redis(host='redis', decode_responses=True)
-img2vec = Img2Vec()
 
 g_conf_threshold = 0.2
 g_overlap_threshold = 0.7
