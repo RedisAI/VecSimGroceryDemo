@@ -7,13 +7,14 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5001
 
 COPY app_redisai app_redisai
+COPY gui/index.html app_redisai/
 COPY data/models data/models
 COPY data/models_loader.py data/
 
-WORKDIR app_redisai
+WORKDIR /app_redisai
 
 RUN apt-get update
-RUN apt-get install ffmpeg libsm6 libxext6  -y
+RUN apt-get install ffmpeg libsm6 libxext6  -qqy
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
