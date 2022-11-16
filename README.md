@@ -2,7 +2,9 @@
 
 An application that uses [vector similarity search](https://redis.io/docs/stack/search/reference/vectors/) in Redis for finding similar grocery items based on an image, and allows adding them to user's cart.
 
-![Demo illustration](./illustration.png "illustration")
+<p align="center">
+   <img src="./illustration.png" alt="Demo illustration">
+</p>
 
 ## How to run
 To run the demo app (including redis server, [app](#basic-app) and [app_redisai](#advanced---orchestrate-flow-with-redisai-and-redisgears) containers) and load the data, run the following commands:
