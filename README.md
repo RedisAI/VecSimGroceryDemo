@@ -5,27 +5,37 @@ An application that uses [vector similarity search](https://redis.io/docs/stack/
 ![Demo illustration](./illustration.png "illustration")
 
 ## How to run
-To run the demo app and load the data, run the following commands:
-```
+To run the demo app (including redis server, [app](#basic-app) and [app_redisai](#advanced---orchestrate-flow-with-redisai-and-redisgears) containers) and load the data, run the following commands:
+```bash
 # Clone the repository
-$ git clone https://github.com/RedisAI/VecSimGroceryDemo.git
-$ cd VecSimGroceryDemo
+git clone https://github.com/RedisAI/VecSimGroceryDemo.git
+cd VecSimGroceryDemo
 
 # Launch the demo with docker-compose (may require sudo in linux)
-$ docker-compose up
+docker compose up
 ```
-This will launch the app and redis server in different docker containers. The initialization may take a few minutes, so now is a good time to make yourself a coffee....
+The initialization may take a few minutes, so now is a good time to make yourself a coffee....
+
+You can also run only one of the apps using
+```bash
+docker compose -f app.yml up
+```
+for running [app](#basic-app), and
+```bash
+docker compose -f redisai.yml up
+```
+for running [app_redisai](#advanced---orchestrate-flow-with-redisai-and-redisgears).
 
 ## Usage
 
 Upon lunching the demo, a Redis instance is created in a container with grocery items data loaded into it. Each product is represented by a JSON document that was preloaded using [RedisJSON](https://redis.io/docs/stack/json), and contains the following properties: id, brand, name, family, and **a list of vector embeddings that represent images of the product** from different angels. These documents were indexed using [RediSearch](https://redis.io/docs/stack/search).
 
-**Be aware:** the dataset contains ~30K products and overall almost 800K vectors (of size 512 floats), which require memory consumption of up to 15GB. Make sure that you run the demo on a machine with sufficient resources (otherwise the OS will kill Redis process).   
+**Be aware:** the dataset contains ~30K products and overall almost 800K vectors (of size 512 floats), which require memory consumption of up to 15GB. Make sure that you run the demo on a machine with sufficient resources (otherwise the OS will kill Redis process).
 
 ### The flow
 Upon sending a `search` request to the app server (by clicking on the camara button), the following steps take place:
 1. An image detection model (yolov5) will run and mark all the items that were recognized in the image.
-2. For every detected product: 
+2. For every detected product:
    1. An encoding model (the output of the second last layer of resnet-18) will generate a vector embedding of the product image (note that this is the same model that generated the vector embeddings for the stored products images).
    2. Search for the top 4 similar products using *RediSearch*, and return them to the user.
 
