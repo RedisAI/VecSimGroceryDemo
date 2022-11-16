@@ -8,14 +8,6 @@ services:
      - "5000:5000"
     depends_on:
       - redis
-  app_redisai:
-    build:
-      context: .
-      dockerfile: app_redisai/Dockerfile
-    ports:
-      - "5001:5001"
-    depends_on:
-      - redis
   redis:
     image: redisfab/grocerydemo:latest
     command: redis-server /data/redis.conf
