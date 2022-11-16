@@ -7,7 +7,7 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5001
 
 COPY app_redisai app_redisai
-COPY data/index.html app_redisai/
+COPY gui/index.html app_redisai/
 COPY data/models data/models
 COPY data/models_loader.py data/
 

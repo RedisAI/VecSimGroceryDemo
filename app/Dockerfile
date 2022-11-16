@@ -7,7 +7,7 @@ ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 
 COPY app .
-COPY data/index.html .
+COPY gui/index.html .
 COPY data/models/best.pt .
 
 RUN apt-get update
