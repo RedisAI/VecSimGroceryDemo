@@ -33,14 +33,14 @@ Upon lunching the demo, a Redis instance is created in a container with grocery 
 **Be aware:** the dataset contains ~30K products and overall almost 800K vectors (of size 512 floats), which require memory consumption of up to 15GB. Make sure that you run the demo on a machine with sufficient resources (otherwise the OS will kill Redis process).
 
 ### The flow
-Upon sending a `search` request to the app server (by clicking on the camara button), the following steps take place:
+Upon sending a `search` request to the app server (by clicking on the camera button), the following steps take place:
 1. An image detection model (yolov5) will run and mark all the items that were recognized in the image.
 2. For every detected product:
    1. An encoding model (the output of the second last layer of resnet-18) will generate a vector embedding of the product image (note that this is the same model that generated the vector embeddings for the stored products images).
    2. Search for the top 4 similar products using *RediSearch*, and return them to the user.
 
 ### Basic app
-For searching similar products, go to `localhost:5000` in your browser, and take a picture of the desired products. Then, the application will detect the products in the image and will search for the 4 most similar products that are available in the database. Every detected product will be marked with a rectangle whost color is red, yellow or green, where red indicated relatively "low" similarity between the detected product and the similar products that were found, yellow indicates a solid match, and a green rectangle indicated that a good match was found with "high" similarity. These should appear upon clicking the appropriate rectangle, while clicking the "+" sign will allow you to add the product to your (imaginary) cart.
+For searching similar products, go to `localhost:5000` in your browser, and take a picture of the desired products. Then, the application will detect the products in the image and will search for the 4 most similar products that are available in the database. Every detected product will be marked with a rectangle whose color is either red, yellow or green, where red indicates relatively "low" similarity between the detected product and the similar products that were found, yellow indicates a solid match, and a green rectangle indicates that a good match was found with "high" similarity. The similar products should appear upon clicking the appropriate rectangle, while clicking the "+" sign will allow you to add the product to your (imaginary) cart.
 
 ### Advanced - orchestrate flow with RedisAI and RedisGears
 You can run an "improved" application that runs the entire flow within Redis, by using `localhost:5001` (user experience should be exactly the same). While the basic app is responsible for running the entire flow within the app, the advanced app is leaner and only responsible for triggering the flow over the input image in [RedisGears](https://oss.redis.com/redisgears/index.html). Hence, the entire flow is being executed with a **single Redis command**, that in turn, uses [RedisAI](https://oss.redis.com/redisai/) module to run the models' inferences, and RediSearch module to perform the similar products search.
