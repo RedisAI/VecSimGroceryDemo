@@ -73,9 +73,9 @@ def main():
 
     # Load gear that runs the flow in RedisGears
     print("Loading application flow recipe into RedisGears (using internal Python interpreter)...")
-    gear_path = os.path.dirname(os.path.abspath(__file__)) + '/../app_redisai/gear.py'
+    gear_path = os.path.dirname(os.path.abspath(__file__)) + '/../app_redisai/old_gear.py'
     with open(gear_path) as f:
-        redis.execute_command("RG.PYEXECUTE", f.read(), 'ID', 'flow', 'UPGRADE', 'REQUIREMENTS', "yolov5",
+        redis.execute_command("RG.PYEXECUTE", f.read(), 'ID', 'flow', 'UPGRADE', 'REQUIREMENTS',
                               "torchvision")
     print("Done\n")
 
